@@ -3,89 +3,103 @@ import sys
 import yaml
 import time
 
+
 import torch
+import hydra
+import omegaconf
 import numpy as np
 import pandas as pd
-from loguru import logger
+# from loguru import logger
+import logging
 import pytorch_tools as pt
 import pytorch_tools.fit_wrapper.callbacks as pt_clb
 
-from src.arg_parser import parse_args
+# from src.arg_parser import parse_args
 from src.datasets import get_dataloaders
+from src.models import CRCED
 from src.utils import METRIC_FROM_NAME, LOSS_FROM_NAME, MODEL_FROM_NAME, TensorBoard
 
 # Make everything slightly faster
 torch.backends.cudnn.benchmark = True
 
+# A logger for this file
+logger = logging.getLogger(__name__)
 
-def main():
-    # Get config for this run
-    hparams = parse_args()
+@hydra.main(config_path="configs", config_name="default")
+def main(hparams: omegaconf.DictConfig):
 
     # Setup logger
-    config = {
-        "handlers": [
-            {"sink": sys.stdout, "format": "{time:[MM-DD HH:mm]} - {message}"},
-            {"sink": f"{hparams.outdir}/logs.txt", "format": "{time:[MM-DD HH:mm]} - {message}"},
-        ],
-    }
-    logger.configure(**config)
+    # config = {
+    #     "handlers": [
+    #         {"sink": sys.stdout, "format": "{time:[MM-DD HH:mm]} - {message}"},
+    #         # {"sink": f"{hparams.outdir}/logs.txt", "format": "{time:[MM-DD HH:mm]} - {message}"},
+    #     ],
+    # }
+    # logger.configure(**config)
     logger.info(f"Parameters used for training: {hparams}")
+    # logger.info(hparams.pretty())
+    logger.debug("Debug message")
 
     # Fix seeds for reprodusability
-    pt.utils.misc.set_random_seed(hparams.seed)
+    pt.utils.misc.set_random_seed(hparams.general.seed)
 
     # Save config
-    os.makedirs(hparams.outdir, exist_ok=True)
-    yaml.dump(vars(hparams), open(hparams.outdir + "/config.yaml", "w"))
+    # os.makedirs(hparams.outdir, exist_ok=True)
+    # yaml.dump(vars(hparams), open(hparams.outdir + "/config.yaml", "w"))
 
     # Get model
-    if hparams.task == "classification":
-        model = pt.models.__dict__[hparams.arch](num_classes=1, **hparams.model_params).cuda()
+    if hparams.training.task == "classification":
+        model = pt.models.__dict__[hparams.training.arch](
+            num_classes=1, **hparams.training.model_params
+        ).cuda()
     else:
-        model = MODEL_FROM_NAME[hparams.segm_arch](hparams.arch, **hparams.model_params).cuda()
-    # logger.info(f"Model used for training: {model}")
+        model = MODEL_FROM_NAME[hparams.training.segm_arch](
+            hparams.training.arch, **hparams.training.model_params
+        ).cuda()
+    logger.info(f"Model used for training: {hparams.training.arch}")
 
-    if hparams.resume:
-        checkpoint = torch.load(hparams.resume, map_location=lambda storage, loc: storage.cuda())
+    if hparams.training.resume:
+        checkpoint = torch.load(hparams.training.resume, map_location=lambda storage, loc: storage.cuda())
         model.load_state_dict(checkpoint["state_dict"], strict=True)
 
     # if hparams.freeze_bn:
     #     freeze_batch_norm(model)
-
+    print(f"Current working directory : {os.getcwd()}")
+    print(f"Orig working directory    : {hydra.utils.get_original_cwd()}")
+    return
     # Get loss
-    loss = LOSS_FROM_NAME[hparams.criterion].cuda()
+    loss = LOSS_FROM_NAME[hparams.training.criterion].cuda()
     logger.info(f"Loss for this run is: {loss}")
 
     # Get optimizer
     # params = pt.utils.misc.filter_bn_from_wd(model)
-    optimizer = pt.optim.optimizer_from_name(hparams.optim)(
-        model.parameters(), lr=0, **hparams.optim_params)
+    optimizer = pt.optim.optimizer_from_name(hparams.training.optim)(
+        model.parameters(), lr=0, **hparams.training.optim_params)
 
     num_params = pt.utils.misc.count_parameters(model)[0]
     logger.info(f"Model size: {num_params / 1e6:.02f}M")
-    # logger.info(model)
 
     # Scheduler is an advanced way of planning experiment
-    sheduler = pt.fit_wrapper.callbacks.PhasesScheduler(hparams.phases)
+    sheduler = pt.fit_wrapper.callbacks.PhasesScheduler(hparams.training.phases)
 
     # Save logs
-    # TB_callback = pt_clb.TensorBoard(hparams.outdir, log_every=20)
-    TB_callback = TensorBoard(hparams.outdir, log_every=40, num_images=4)
+    # TB_callback = pt_clb.TensorBoard(hparams.training.outdir, log_every=20)
+    TB_callback = TensorBoard(hparams.training.outdir, log_every=40, num_images=4)
 
     # Get dataloaders
     train_loader, val_loader = get_dataloaders(
-        root=hparams.root,
-        aug_type=hparams.aug_type,
-        task=hparams.task,
-        size=hparams.size,
-        batch_size=hparams.batch_size,
-        workers=hparams.workers,
+        root=hparams.data.root,
+        aug_type=hparams.data.aug_type,
+        task=hparams.training.task,
+        size=hparams.training.size,
+        batch_size=hparams.data.batch_size,
+        workers=hparams.data.workers,
     )
 
     # Get metrics
-    metrics = [METRIC_FROM_NAME[metric_name] for metric_name in hparams.metrics]
+    metrics = [METRIC_FROM_NAME[metric_name] for metric_name in hparams.trainig.metrics]
 
+    return
     logger.info(f"Start training")
     # Init runner
     runner = pt.fit_wrapper.Runner(
@@ -121,14 +135,13 @@ def main():
     model.load_state_dict(checkpoint["state_dict"], strict=True)
 
     # Evaluate
-    val_loss, metrics = runner.evaluate(
+    val_loss, val_metrics = runner.evaluate(
         val_loader,
         steps=20 if hparams.debug else None,
     )
 
-    # TODO: print metric name and value
     logger.info(
-        f"Val: Loss {val_loss:0.5f}, Acc@1 {metrics[0]:0.5f}")
+        f"Val: Loss {val_loss:0.5f}, {metrics[0].name} {val_metrics[0]:0.5f}")
 
     # Save params used for training and final metrics into separate TensorBoard file
     # metric_dict = {

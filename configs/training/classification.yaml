@@ -1,0 +1,13 @@
+# @package _group_
+task: classification
+phases: [
+    {ep: [0, 3], lr: [0.0001, 0.000001], mode: cos, mom: null},
+  ]
+size: 512
+metrics: [acc]
+criterion: bce
+criterion_params: {}
+
+arch: resnet50
+model_params:
+  pretrained: 'imagenet'

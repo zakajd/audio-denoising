@@ -1,0 +1,14 @@
+# @package _group_
+task: denoising
+phases: [
+    {ep: [0, 20], lr: [0.0001, 0.00001]},
+]
+size: 512
+metrics: [mse, huber]
+criterion: bce
+criterion_params: {}
+
+segm_arch: unet
+arch: se_resnet50
+model_params:
+  pretrained: 'imagenet'
