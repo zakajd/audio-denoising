@@ -1,0 +1,32 @@
+
+# General
+name: default
+task: classification
+seed: 42
+root: data/raw
+batch_size: 32
+workers: 6
+aug_type: light
+debug: false
+resume: ""
+
+# Model
+arch: resnet50
+model_params: {pretrained: 'imagenet'}
+ema_decay: 0.0
+
+# Training
+optim: adam
+optim_params: {weight_decay: 0.0, amsgrad: true}
+use_fp16: true
+size: 256
+phases: [
+    {ep: [0, 3], lr: [0.0001, 0.000001], mode: cos},
+]
+metrics: [acc]
+
+criterion: bce
+criterion_params: {}
+
+# Validation and testing
+tta: false
