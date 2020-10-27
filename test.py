@@ -20,11 +20,15 @@ from tqdm import tqdm
 import pytorch_tools as pt
 import pytorch_tools.fit_wrapper.callbacks as pt_clb
 import albumentations as albu
-from loguru import logger
+# from loguru import logger
+import logging
 
 # Local imports
 from src.datasets import get_val_dataloader, get_aug
 from src.utils import MODEL_FROM_NAME, LOSS_FROM_NAME, METRIC_FROM_NAME
+
+# A logger for this file
+logger = logging.getLogger(__name__)
 
 
 @torch.no_grad()
@@ -62,17 +66,45 @@ def denoise_audio(file, model):
     return denoised_mel.T
     
 
-def main(hparams):
+@torch.no_grad()
+def classify_audio(file, model):
+    """
+    Args:
+        file: Path to melspectogram
+        model: PyTorch model used for classification
+    """
+
+    noisy_mel = np.load(file).astype('float32')
+
+    # Prepare for inference
+    length = (mel.shape[0] + 31) // 32 * 32
+
+    # Add fake RGB channels
+    image = np.repeat(mel[np.newaxis, :, :], 3, axis=0)
+    
+    # Transform
+    noisy_image = get_aug('val', size=length)(image=image.T)["image"].unsqueeze(0).cuda()
+
+    label = model(noisy_image).squeeze().cpu().sigmoid().numpy() > 0.5  # Use fixed threshold
+    return label.astype('int8')
+
+
+def test(hparams):
     assert hparams.config_path.exists(), "Folder with config doesn't exist"
 
     # Add model parameters 
-    with open(hparams.config_path / 'config.yaml', "r") as file:
-        model_configs = yaml.load(file)
+    # with open(hparams.config_path / '.hydra'/ 'config.yaml', "r") as file:
+    #     model_configs = yaml.load(file)
+    vars(hparams).update(model_configs)
+    
+    conf = OmegaConf.load(hparams.config_path / '.hydra'/ 'config.yaml')
     vars(hparams).update(model_configs)
 
+    print(hparams.training.task)
+
     # Get model
-    if hparams.task == "classification":
-        model = pt.models.__dict__[hparams.arch](num_classes=1, **hparams.model_params)#.cuda()
+    if hparams.training.task == "classification":
+        model = pt.models.__dict__[hparams.training.arch](num_classes=1, **hparams.training.model_params)#.cuda()
     else:
         model = MODEL_FROM_NAME[hparams.segm_arch](hparams.arch, **hparams.model_params)#.cuda()
 
@@ -86,12 +118,17 @@ def main(hparams):
 
     # Inference one file
     if hparams.file_path:
-        hparams.file_path = pathlib.Path(hparams.file_path)
-        denoised_mel = denoise_audio(hparams.file_path, model)
+        # hparams.file_path = pathlib.Path(hparams.file_path)
+        if hparams.training.task == 'classification':
+            label = classify_audio(hparams.file_path, model)
+            logger.info(f'Label: {"noisy" if label else "clean"}')
 
-        # Save
-        np.save(hparams.output_path / hparams.file_path.name, denoised_mel)
-        logger.info(f'Saved denoised melspectogram to {hparams.output_path / hparams.file_path.name}')
+        else:
+            denoised_mel = denoise_audio(hparams.file_path, model)
+
+            # Save
+            np.save(hparams.output_path / hparams.file_path.name, denoised_mel)
+            logger.info(f'Saved denoised melspectogram to {hparams.output_path / hparams.file_path.name}')
 
     # Inference all files in the folder and compute target metric
     if hparams.data_path:
@@ -103,7 +140,7 @@ def main(hparams):
         loader, _ = get_val_dataloader(
             root=hparams.data_path,
             aug_type='val',
-            task=hparams.task,
+            task=hparams.training.task,
             size=512,
             batch_size=1,
             workers=hparams.workers,
@@ -129,6 +166,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--config_path", type=pathlib.Path, help="Path to folder with model config and checkpoint")
+    # parser.add_argument(
+    #     "--task", type=str, choices=['classification', 'denoising'], help="")
     parser.add_argument(
         "--data_path", type=str, default="", help="Path to clean/noisy files")
     parser.add_argument(
@@ -139,5 +178,5 @@ if __name__ == "__main__":
     hparams = parser.parse_args()
     print(f"Parameters used for inference: {hparams}")
     start_time = time.time()
-    main(hparams)
+    test(hparams)
     print(f"Finished inference. Took: {(time.time() - start_time) / 60:.02f}m")

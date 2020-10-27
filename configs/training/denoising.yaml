@@ -1,11 +1,11 @@
 # @package _group_
 task: denoising
 phases: [
-    {ep: [0, 20], lr: [0.0001, 0.00001]},
+    {ep: [0, 20], lr: [0.0001, 0.00001], mode: cos, mom: null},
 ]
 size: 512
 metrics: [mse, huber]
-criterion: bce
+criterion: mse
 criterion_params: {}
 
 segm_arch: unet

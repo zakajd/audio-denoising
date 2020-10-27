@@ -45,6 +45,7 @@ def get_dataloaders(
         val_dataloader
     """
     root = pathlib.Path(root)
+    print(root)
     # root = pathlib.Path(os.path.join(root, 'train' if train else 'val'))
 
     # Get augmentations
@@ -111,15 +112,14 @@ def get_val_dataloader(
     )
 
     val_loader = ToCudaLoader(val_loader)
-    
     return val_loader, val_dataset.targets
 
 
-def get_aug(aug_type="val", size=128):
+def get_aug(aug_type: str = "val", size: int = 128):
     """Return augmentations by type
     Args:
-        aug_type (str): one of `val`, `test`, `light`, `medium`
-        size (int): final size of the crop
+        aug_type : one of `val`, `test`, `light`, `medium`
+        size: final size of the crop
     """
     N_FFT = 96 # Image height
     # N_FFT = 80 # Image height
@@ -129,25 +129,14 @@ def get_aug(aug_type="val", size=128):
         albu_pt.ToTensorV2()])
 
     CROP_AUG = albu.Compose([
-        # albu.PadIfNeeded(min_height=None, min_width=size, pad_height_divisor=32), 
-        albu.PadIfNeeded(N_FFT, size, border_mode=0), 
+        albu.PadIfNeeded(N_FFT, size, border_mode=0),
         albu.RandomCrop(N_FFT, size),
     ])
 
     LIGHT_AUG = albu.Compose(
         [   
             CROP_AUG,
-            # Add noise
-            albu.GaussNoise(var_limit=(0.1, 0.3)),
-            NORM_TO_TENSOR
-        ],
-        p=1.0,
-    )
-
-    MEDIUM_AUG = albu.Compose(
-        [
-            CROP_AUG,
-            albu.Cutout(num_holes=8, max_h_size=size // 16, max_w_size=size // 16, fill_value=0, p=0.5),
+            albu.Cutout(num_holes=8, max_h_size=size // 16, max_w_size=size // 16, fill_value=0, p=0.3),
             # Add noise
             albu.GaussNoise(var_limit=(0.1, 0.3)),
             NORM_TO_TENSOR
@@ -162,7 +151,6 @@ def get_aug(aug_type="val", size=128):
 
     types = {
         "light": LIGHT_AUG,
-        "medium": MEDIUM_AUG,
         "val": VAL_AUG,
         "test": VAL_AUG,
     }
@@ -225,11 +213,13 @@ class DenoisingDataset(ClassificationDataset):
         root: Path to directory with melspectograms
         transform: albumentations.Transform object
         train: Flag to switch between training and validation
+        to_rgb: Flag to make fake channels to use pretrained models
     
     Returns:
         noisy_image: Mel-spectogram with noise
         clean_image: Mel-spectogram without noise
     """
+
     def __getitem__(self, index):
         """
         Args:
@@ -248,8 +238,7 @@ class DenoisingDataset(ClassificationDataset):
         transform = self.transform(image=noisy_image.T, mask=clean_image.T)
         clean_image = transform["mask"].unsqueeze(0)  # Add channel dim
         noisy_image = transform["image"]
-        # print("Noisy", index, noisy_image.min(), noisy_image.max(), noisy_image.mean())
-        # print("Clean", index, clean_image.min(), clean_image.max(), clean_image.mean())
+
         # print("Noisy", index, noisy_image.shape)
         # print("Clean", index, clean_image.shape)
         return noisy_image, clean_image

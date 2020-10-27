@@ -8,6 +8,7 @@ import torchvision
 
 LOSS_FROM_NAME = {
     "bce": pt.losses.CrossEntropyLoss(mode="binary"),
+    # "bce": torch.nn.BCEWithLogitsLoss(),
     "wbce": pt.losses.CrossEntropyLoss(mode="binary", weight=[5]),
     "dice": pt.losses.DiceLoss(mode="binary"),
     "jaccard": pt.losses.JaccardLoss(mode="binary"),
@@ -93,11 +94,11 @@ class TensorBoard(pt.fit_wrapper.callbacks.TensorBoard):
         self.state.model.eval()
         denoised_batch = self.state.model(self.noisy_batch)
         denoised_grid = torchvision.utils.make_grid(denoised_batch, nrow=2, normalize=True, scale_each=True)
-        self.state.logger.info(f"Denoised images mean {denoised_batch.mean()}, min {denoised_batch.min()}, max {denoised_batch.max()}")
+        self.state.logger.info(f"Denoised images mean {denoised_batch.mean():0.5f}, min {denoised_batch.min():0.5f}, max {denoised_batch.max():0.5f}")
 
         error_map = torch.abs(denoised_batch - self.clean_batch)
         erro_grid = torchvision.utils.make_grid(error_map, nrow=2, normalize=True, scale_each=True)
-        self.state.logger.info(f"Error mean {error_map.mean()}, min {error_map.min()}, max {error_map.max()}")    
+        self.state.logger.info(f"Error mean {error_map.mean():0.5f}, min {error_map.min():0.5f}, max {error_map.max():0.5f}")    
         # self.state.logger.info(f"Clean grid shape {self.clean_grid.shape}, \
         #     denoised {denoised_grid.shape}, error {erro_grid.shape}")
         self.writer.add_image("val/clean", self.clean_grid , self.current_step)

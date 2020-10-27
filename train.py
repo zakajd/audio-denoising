@@ -9,8 +9,8 @@ import hydra
 import omegaconf
 import numpy as np
 import pandas as pd
-# from loguru import logger
-import logging
+from loguru import logger
+# import logging
 import pytorch_tools as pt
 import pytorch_tools.fit_wrapper.callbacks as pt_clb
 
@@ -22,51 +22,44 @@ from src.utils import METRIC_FROM_NAME, LOSS_FROM_NAME, MODEL_FROM_NAME, TensorB
 # Make everything slightly faster
 torch.backends.cudnn.benchmark = True
 
-# A logger for this file
-logger = logging.getLogger(__name__)
+# # A logger for this file
+# logger = logging.getLogger(__name__)
 
 @hydra.main(config_path="configs", config_name="default")
 def main(hparams: omegaconf.DictConfig):
+    # Replace relative path
+    hparams.data.root = hydra.utils.to_absolute_path(hparams.data.root)
 
     # Setup logger
-    # config = {
-    #     "handlers": [
-    #         {"sink": sys.stdout, "format": "{time:[MM-DD HH:mm]} - {message}"},
-    #         # {"sink": f"{hparams.outdir}/logs.txt", "format": "{time:[MM-DD HH:mm]} - {message}"},
-    #     ],
-    # }
-    # logger.configure(**config)
-    logger.info(f"Parameters used for training: {hparams}")
-    # logger.info(hparams.pretty())
-    logger.debug("Debug message")
+    config = {
+        "handlers": [
+            {"sink": sys.stdout, "format": "{time:[MM-DD HH:mm]} - {message}"},
+            {"sink": f"logs.txt", "format": "{time:[MM-DD HH:mm]} - {message}"},
+        ],
+    }
+    logger.configure(**config)
+    logger.info(f"Parameters used for training: {hparams}")  # hparams.pretty()
 
     # Fix seeds for reprodusability
     pt.utils.misc.set_random_seed(hparams.general.seed)
 
-    # Save config
-    # os.makedirs(hparams.outdir, exist_ok=True)
-    # yaml.dump(vars(hparams), open(hparams.outdir + "/config.yaml", "w"))
-
     # Get model
     if hparams.training.task == "classification":
         model = pt.models.__dict__[hparams.training.arch](
-            num_classes=1, **hparams.training.model_params
-        ).cuda()
+            num_classes=1, **hparams.training.model_params).cuda()
     else:
         model = MODEL_FROM_NAME[hparams.training.segm_arch](
-            hparams.training.arch, **hparams.training.model_params
-        ).cuda()
+            hparams.training.arch, **hparams.training.model_params).cuda()
     logger.info(f"Model used for training: {hparams.training.arch}")
 
     if hparams.training.resume:
+        hparams.training.resume = hydra.utils.to_absolute_path(hparams.training.resume)
         checkpoint = torch.load(hparams.training.resume, map_location=lambda storage, loc: storage.cuda())
         model.load_state_dict(checkpoint["state_dict"], strict=True)
 
     # if hparams.freeze_bn:
     #     freeze_batch_norm(model)
-    print(f"Current working directory : {os.getcwd()}")
-    print(f"Orig working directory    : {hydra.utils.get_original_cwd()}")
-    return
+
     # Get loss
     loss = LOSS_FROM_NAME[hparams.training.criterion].cuda()
     logger.info(f"Loss for this run is: {loss}")
@@ -83,8 +76,8 @@ def main(hparams: omegaconf.DictConfig):
     sheduler = pt.fit_wrapper.callbacks.PhasesScheduler(hparams.training.phases)
 
     # Save logs
-    # TB_callback = pt_clb.TensorBoard(hparams.training.outdir, log_every=20)
-    TB_callback = TensorBoard(hparams.training.outdir, log_every=40, num_images=4)
+    TB_callback = pt_clb.TensorBoard(os.getcwd(), log_every=20)
+    # TB_callback = TensorBoard(os.getcwd(), log_every=40, num_images=4)
 
     # Get dataloaders
     train_loader, val_loader = get_dataloaders(
@@ -97,9 +90,8 @@ def main(hparams: omegaconf.DictConfig):
     )
 
     # Get metrics
-    metrics = [METRIC_FROM_NAME[metric_name] for metric_name in hparams.trainig.metrics]
+    metrics = [METRIC_FROM_NAME[metric_name] for metric_name in hparams.training.metrics]
 
-    return
     logger.info(f"Start training")
     # Init runner
     runner = pt.fit_wrapper.Runner(
@@ -108,36 +100,36 @@ def main(hparams: omegaconf.DictConfig):
         criterion=loss,
         callbacks=[
             pt_clb.BatchMetrics(metrics),
-            pt_clb.Timer(),
             pt_clb.ConsoleLogger(),
             pt_clb.FileLogger(),
             TB_callback,
-            pt_clb.CheckpointSaver(hparams.outdir, save_name="model.chpn"),
+            pt_clb.CheckpointSaver(os.getcwd(), save_name="model.chpn"),
             sheduler,
-            # EMA must go after other checkpoints
-            pt_clb.ModelEma(model, hparams.ema_decay) if hparams.ema_decay else pt_clb.Callback(),
             # pt_clb.BatchOverfit(),
         ],
-        use_fp16=hparams.use_fp16, 
+        use_fp16=hparams.training.use_fp16, 
     )
+
+    # Small hack to fix logging
+    # runner.state.logger = logger
 
     # Train
     runner.fit(
         train_loader,
         val_loader=val_loader,
         epochs=sheduler.tot_epochs,
-        steps_per_epoch=20 if hparams.debug else None,
-        val_steps=20 if hparams.debug else None,
+        steps_per_epoch=20 if hparams.general.debug else None,
+        val_steps=20 if hparams.general.debug else None,
     )
 
     logger.info(f"Loading best model")
-    checkpoint = torch.load(os.path.join(hparams.outdir, f"model.chpn"))
+    checkpoint = torch.load("model.chpn")
     model.load_state_dict(checkpoint["state_dict"], strict=True)
 
     # Evaluate
     val_loss, val_metrics = runner.evaluate(
         val_loader,
-        steps=20 if hparams.debug else None,
+        steps=20 if hparams.general.debug else None,
     )
 
     logger.info(
