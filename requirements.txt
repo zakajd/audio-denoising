@@ -1,0 +1,12 @@
+torchvision
+numpy
+opencv-python-headless
+notebook
+ipywidgets
+matplotlib
+hydra-core
+tensorboard
+albumentations 
+loguru
+tqdm
+git+git://github.com/bonlime/pytorch-tools.git@master#egg=pytorch-tools

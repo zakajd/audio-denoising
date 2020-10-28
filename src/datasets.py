@@ -137,6 +137,7 @@ def get_aug(aug_type: str = "val", size: int = 128):
         [   
             CROP_AUG,
             albu.Cutout(num_holes=8, max_h_size=size // 16, max_w_size=size // 16, fill_value=0, p=0.3),
+            albu.VerticalFlip(),
             # Add noise
             albu.GaussNoise(var_limit=(0.1, 0.3)),
             NORM_TO_TENSOR
@@ -178,7 +179,7 @@ class ClassificationDataset(torch.utils.data.Dataset):
         assert len(self.clean_files) == len(self.noisy_files), "Clean and noisy files doesn't match!"
 
         self.files = self.clean_files + self.noisy_files
-        self.targets = [0] * len(self.clean_files) + [0] * len(self.noisy_files)
+        self.targets = [0] * len(self.clean_files) + [1] * len(self.noisy_files)
 
         # Сheck that all images exist
         assert map(lambda x: pathlib.Path(x).exists(), self.files), "Found missing images!"

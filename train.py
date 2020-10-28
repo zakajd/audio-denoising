@@ -3,27 +3,20 @@ import sys
 import yaml
 import time
 
-
 import torch
 import hydra
 import omegaconf
 import numpy as np
-import pandas as pd
 from loguru import logger
-# import logging
 import pytorch_tools as pt
 import pytorch_tools.fit_wrapper.callbacks as pt_clb
 
-# from src.arg_parser import parse_args
 from src.datasets import get_dataloaders
-from src.models import CRCED
+# from src.models import CRCED
 from src.utils import METRIC_FROM_NAME, LOSS_FROM_NAME, MODEL_FROM_NAME, TensorBoard
 
 # Make everything slightly faster
 torch.backends.cudnn.benchmark = True
-
-# # A logger for this file
-# logger = logging.getLogger(__name__)
 
 @hydra.main(config_path="configs", config_name="default")
 def main(hparams: omegaconf.DictConfig):

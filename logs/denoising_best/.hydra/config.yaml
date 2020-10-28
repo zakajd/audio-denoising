@@ -1,5 +1,5 @@
 general:
-  name: default
+  name: denoising_unet_seresnet50
   seed: 42
   debug: false
 data:

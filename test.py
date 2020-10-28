@@ -1,34 +1,25 @@
-# Predict test images using TTA
-# Save individual models predictions
-# Enseble them with Max vote or simple average
-
 import os
 import time
 import shutil
-import pathlib
+from pathlib import Path
 from multiprocessing import pool
-import configargparse as argparse
+import argparse
 
 import cv2
 import yaml
-import apex
 import torch
 import shapely
+from omegaconf import OmegaConf
 import numpy as np
-import pandas as pd
 from tqdm import tqdm
 import pytorch_tools as pt
 import pytorch_tools.fit_wrapper.callbacks as pt_clb
 import albumentations as albu
-# from loguru import logger
-import logging
+from loguru import logger
 
 # Local imports
 from src.datasets import get_val_dataloader, get_aug
 from src.utils import MODEL_FROM_NAME, LOSS_FROM_NAME, METRIC_FROM_NAME
-
-# A logger for this file
-logger = logging.getLogger(__name__)
 
 
 @torch.no_grad()
@@ -38,15 +29,14 @@ def denoise_audio(file, model):
         file: Path to noisy melspectogram
         model: PyTorch model used for denoising
     """
-
-    # # Read file and get melspectogram
     # noisy_audio, framerate = soundfile.read(audio_file)
     # noisy_mel = 1 + np.log(
     #     1.e-12 + librosa.feature.melspectrogram(
     #         noisy_audio, sr=16000, n_fft=1024, hop_length=256, fmin=20, fmax=8000, n_mels=80)
     # ).T / 10.
-    noisy_mel = np.load(file).astype('float32')
 
+    # Read file and get melspectogram
+    noisy_mel = np.load(file).astype('float32')
 
     # Prepare for inference
     length = (noisy_mel.shape[0] + 31) // 32 * 32
@@ -62,7 +52,6 @@ def denoise_audio(file, model):
     w_pad_left = int((length - noisy_mel.shape[0]) / 2.0)
     w_pad_right = length - noisy_mel.shape[0] - w_pad_left
     denoised_mel = denoised_mel[8: -8, w_pad_left: -w_pad_right]
-
     return denoised_mel.T
     
 
@@ -74,41 +63,33 @@ def classify_audio(file, model):
         model: PyTorch model used for classification
     """
 
-    noisy_mel = np.load(file).astype('float32')
-
-    # Prepare for inference
-    length = (mel.shape[0] + 31) // 32 * 32
+    mel = np.load(file).astype('float32')
 
     # Add fake RGB channels
     image = np.repeat(mel[np.newaxis, :, :], 3, axis=0)
-    
-    # Transform
-    noisy_image = get_aug('val', size=length)(image=image.T)["image"].unsqueeze(0).cuda()
 
-    label = model(noisy_image).squeeze().cpu().sigmoid().numpy() > 0.5  # Use fixed threshold
+    # Transform
+    image = get_aug('val', size=512)(image=image.T)["image"].unsqueeze(0).cuda()
+    logit = model(image).squeeze().cpu()
+    print(logit, logit.sigmoid())
+    label = model(image).squeeze().cpu().sigmoid().numpy() > 0.5  # Use fixed threshold
     return label.astype('int8')
 
 
 def test(hparams):
-    assert hparams.config_path.exists(), "Folder with config doesn't exist"
-
-    # Add model parameters 
-    # with open(hparams.config_path / '.hydra'/ 'config.yaml', "r") as file:
-    #     model_configs = yaml.load(file)
-    vars(hparams).update(model_configs)
-    
-    conf = OmegaConf.load(hparams.config_path / '.hydra'/ 'config.yaml')
-    vars(hparams).update(model_configs)
-
-    print(hparams.training.task)
+    # Add model parameters
+    hparams = OmegaConf.merge(
+        OmegaConf.create(vars(hparams)),
+        OmegaConf.load(os.path.join(hparams.config_path, '.hydra/config.yaml'))
+    )
 
     # Get model
     if hparams.training.task == "classification":
-        model = pt.models.__dict__[hparams.training.arch](num_classes=1, **hparams.training.model_params)#.cuda()
+        model = pt.models.__dict__[hparams.training.arch](num_classes=1, **hparams.training.model_params).cuda()
     else:
-        model = MODEL_FROM_NAME[hparams.segm_arch](hparams.arch, **hparams.model_params)#.cuda()
+        model = MODEL_FROM_NAME[hparams.training.segm_arch](hparams.training.arch, **hparams.training.model_params).cuda()
 
-    checkpoint = torch.load(hparams.config_path / "model.chpn")
+    checkpoint = torch.load(os.path.join(hparams.config_path, "model.chpn"))
     model.load_state_dict(checkpoint["state_dict"])
     model = model.cuda().eval()
     logger.info("Model loaded succesfully.")
@@ -118,21 +99,21 @@ def test(hparams):
 
     # Inference one file
     if hparams.file_path:
-        # hparams.file_path = pathlib.Path(hparams.file_path)
         if hparams.training.task == 'classification':
             label = classify_audio(hparams.file_path, model)
             logger.info(f'Label: {"noisy" if label else "clean"}')
-
-        else:
+        elif hparams.training.task == 'denoising':
             denoised_mel = denoise_audio(hparams.file_path, model)
 
             # Save
-            np.save(hparams.output_path / hparams.file_path.name, denoised_mel)
-            logger.info(f'Saved denoised melspectogram to {hparams.output_path / hparams.file_path.name}')
+            output_path = Path(hparams.output_path)
+            logger.info(f'Saved denoised melspectogram to {output_path / Path(hparams.file_path).name}')
+            np.save(output_path / Path(hparams.file_path).name, denoised_mel)
+    return
 
     # Inference all files in the folder and compute target metric
     if hparams.data_path:
-        hparams.data_path = pathlib.Path(hparams.data_path)
+        hparams.data_path = Path(hparams.data_path)
         # Get loss
         loss = LOSS_FROM_NAME[hparams.criterion].cuda()
 
@@ -165,15 +146,13 @@ if __name__ == "__main__":
         description="Audio classification and denoising",
     )
     parser.add_argument(
-        "--config_path", type=pathlib.Path, help="Path to folder with model config and checkpoint")
-    # parser.add_argument(
-    #     "--task", type=str, choices=['classification', 'denoising'], help="")
+        "--config_path", type=str, help="Path to folder with model config and checkpoint")
     parser.add_argument(
-        "--data_path", type=str, default="", help="Path to clean/noisy files")
+        "--folder_path", type=str, default="", help="Path to folder with files")
     parser.add_argument(
-        "--file_path", type=str, default="", help="Path to noisy melspectogram")
+        "--file_path", type=str, default="", help="Path to one melspectogram")
     parser.add_argument(
-        "--output_path", type=pathlib.Path, default="examples", help="Where to save result")
+        "--output_path", type=str, default="examples/denoised", help="Where to save result")
 
     hparams = parser.parse_args()
     print(f"Parameters used for inference: {hparams}")

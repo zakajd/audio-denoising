@@ -1,7 +1,5 @@
-import piq
 import torch
 import pytorch_tools as pt
-import segmentation_models_pytorch as sm
 from loguru import logger
 import torchvision
 
@@ -36,7 +34,6 @@ METRIC_FROM_NAME = {
     "mae": L1Loss(),
     "huber": SmoothL1Loss(),
     "mse": MSELoss(),
-    # "ms_gmsdc": piq.muli
 }
 
 
@@ -44,12 +41,6 @@ MODEL_FROM_NAME = {
     "unet": pt.segmentation_models.Unet,
     "linknet": pt.segmentation_models.Linknet,
     "deeplab": pt.segmentation_models.DeepLabV3,
-    "unet_sm": sm.Unet,
-    "linknet_sm": sm.Linknet,
-    "fpn_sm": sm.FPN,
-    "deeplab_sm": sm.DeepLabV3,
-    "segm_fpn": pt.segmentation_models.SegmentationFPN,
-    "segm_bifpn": pt.segmentation_models.SegmentationBiFPN,
 }
 
 
