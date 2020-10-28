@@ -1,0 +1,2 @@
+- training=denoising
+- general.name=denoising_unet_seresnet50

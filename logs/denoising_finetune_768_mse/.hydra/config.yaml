@@ -1,0 +1,36 @@
+arch: se_resnet50
+aug_type: light
+batch_size: 128
+config_file: configs/denoising/default.yaml
+criterion: mse
+criterion_params: {}
+debug: false
+ema_decay: 0.0
+metrics:
+- huber
+- mae
+- mse
+model_params:
+  pretrained: imagenet
+name: denoising_finetune_768_mse
+optim: adam
+optim_params:
+  amsgrad: true
+  weight_decay: 0.0
+outdir: logs/denoising_finetune_768_mse-1
+phases:
+- ep:
+  - 0
+  - 20
+  lr:
+  - 5.0e-05
+  - 1.0e-06
+resume: logs/test_tb-3/model.chpn
+root: data/raw
+seed: 42
+segm_arch: unet
+size: 768
+task: denoising
+tta: false
+use_fp16: true
+workers: 4

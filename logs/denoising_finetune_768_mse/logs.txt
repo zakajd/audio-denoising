@@ -1,0 +1,138 @@
+[10-20 22:29] - Parameters used for training: Namespace(arch='se_resnet50', aug_type='light', batch_size=128, config_file='configs/denoising/default.yaml', criterion='mse', criterion_params={}, debug=False, ema_decay=0.0, metrics=['huber', 'mae', 'mse'], model_params={'pretrained': 'imagenet'}, name='denoising_finetune_768_mse', optim='adam', optim_params={'weight_decay': 0.0, 'amsgrad': True}, outdir='logs/denoising_finetune_768_mse-1', phases=[{'ep': [0, 20], 'lr': [5e-05, 1e-06]}], resume='logs/test_tb-3/model.chpn', root='data/raw', seed=42, segm_arch='unet', size=768, task='denoising', tta=False, use_fp16=True, workers=4)
+[10-20 22:29] - Loss for this run is: MSELoss()
+[10-20 22:29] - Model size: 35.05M
+[10-20 22:29] - Using light augs: Compose([
+  Compose([
+    PadIfNeeded(always_apply=False, p=1.0, min_height=96, min_width=768, pad_height_divisor=None, pad_width_divisor=None, border_mode=0, value=None, mask_value=None),
+    RandomCrop(always_apply=False, p=1.0, height=96, width=768),
+  ], p=1.0, bbox_params=None, keypoint_params=None, additional_targets={}),
+  GaussNoise(always_apply=False, p=0.5, var_limit=(0.1, 0.3)),
+  Compose([
+    ToTensorV2(always_apply=True, p=1.0),
+  ], p=1.0, bbox_params=None, keypoint_params=None, additional_targets={}),
+], p=1.0, bbox_params=None, keypoint_params=None, additional_targets={})
+[10-20 22:29] - Train size (denoising): 12000
+[10-20 22:29] - Val size denoising: 2000
+[10-20 22:29] - Start training
+[10-20 22:29] - Epoch 1 | lr 0.00e+00
+[10-20 22:30] - 
+TimeMeter profiling. Data time: 3.05E-03s. Model time: 6.72E-01s 
+
+[10-20 22:30] - Clean images mean -0.08740400522947311, min -1.240234375, max 1.5185546875
+[10-20 22:30] - Clean images grid mean 0.40632718801498413
+[10-20 22:30] - Train loss: 0.0360 | huber: 0.0832 | L1: 0.0832 | L2: 0.0360
+[10-20 22:30] - Val   loss: 0.0279 | huber: 0.0676 | L1: 0.0676 | L2: 0.0279
+[10-20 22:30] - Denoised images mean 0.00901491753757, min -0.8499350547790527, max 1.5480246543884277
+[10-20 22:30] - Error mean 0.1768810898065567, min 0.0, max 1.3605399131774902
+[10-20 22:30] - Epoch  1: best loss improved from inf to 0.0279
+[10-20 22:30] - Epoch 2 | lr 5.00e-05
+[10-20 22:31] - Train loss: 0.0339 | huber: 0.0794 | L1: 0.0794 | L2: 0.0339
+[10-20 22:31] - Val   loss: 0.0271 | huber: 0.0670 | L1: 0.0670 | L2: 0.0271
+[10-20 22:31] - Denoised images mean 0.002331601222977042, min -0.8548715114593506, max 1.5439839363098145
+[10-20 22:31] - Error mean 0.17088361084461212, min 0.0, max 1.3668861389160156
+[10-20 22:31] - Epoch  2: best loss improved from 0.0279 to 0.0271
+[10-20 22:31] - Epoch 3 | lr 4.76e-05
+[10-20 22:32] - Train loss: 0.0332 | huber: 0.0783 | L1: 0.0783 | L2: 0.0332
+[10-20 22:32] - Val   loss: 0.0269 | huber: 0.0673 | L1: 0.0673 | L2: 0.0269
+[10-20 22:32] - Denoised images mean -0.010452012531459332, min -0.8716707229614258, max 1.565462589263916
+[10-20 22:32] - Error mean 0.16807778179645538, min 0.0, max 1.2821383476257324
+[10-20 22:32] - Epoch  3: best loss improved from 0.0271 to 0.0269
+[10-20 22:32] - Epoch 4 | lr 4.51e-05
+[10-20 22:34] - Train loss: 0.0328 | huber: 0.0776 | L1: 0.0776 | L2: 0.0328
+[10-20 22:34] - Val   loss: 0.0262 | huber: 0.0654 | L1: 0.0654 | L2: 0.0262
+[10-20 22:34] - Denoised images mean 0.00019649665046017617, min -0.8800089359283447, max 1.5358514785766602
+[10-20 22:34] - Error mean 0.16747590899467468, min 9.5367431640625e-07, max 1.2906708717346191
+[10-20 22:34] - Epoch  4: best loss improved from 0.0269 to 0.0262
+[10-20 22:34] - Epoch 5 | lr 4.26e-05
+[10-20 22:35] - Train loss: 0.0320 | huber: 0.0766 | L1: 0.0766 | L2: 0.0320
+[10-20 22:35] - Val   loss: 0.0265 | huber: 0.0671 | L1: 0.0671 | L2: 0.0265
+[10-20 22:35] - Denoised images mean -0.02828652411699295, min -0.8924460411071777, max 1.52360200881958
+[10-20 22:35] - Error mean 0.161081463098526, min 0.0, max 1.27632474899292
+[10-20 22:35] - Epoch 6 | lr 4.02e-05
+[10-20 22:36] - Train loss: 0.0315 | huber: 0.0757 | L1: 0.0757 | L2: 0.0315
+[10-20 22:36] - Val   loss: 0.0255 | huber: 0.0636 | L1: 0.0636 | L2: 0.0255
+[10-20 22:36] - Denoised images mean -0.01707259565591812, min -0.9023952484130859, max 1.5335807800292969
+[10-20 22:36] - Error mean 0.16052360832691193, min 4.76837158203125e-07, max 1.2849297523498535
+[10-20 22:36] - Epoch  6: best loss improved from 0.0262 to 0.0255
+[10-20 22:36] - Epoch 7 | lr 3.78e-05
+[10-20 22:37] - Train loss: 0.0312 | huber: 0.0755 | L1: 0.0755 | L2: 0.0312
+[10-20 22:37] - Val   loss: 0.0265 | huber: 0.0627 | L1: 0.0627 | L2: 0.0265
+[10-20 22:37] - Denoised images mean 0.0068241688422858715, min -0.8988635540008545, max 1.5559515953063965
+[10-20 22:37] - Error mean 0.1699819713830948, min 4.76837158203125e-07, max 1.2773971557617188
+[10-20 22:37] - Epoch 8 | lr 3.53e-05
+[10-20 22:38] - Train loss: 0.0309 | huber: 0.0746 | L1: 0.0746 | L2: 0.0309
+[10-20 22:38] - Val   loss: 0.0247 | huber: 0.0614 | L1: 0.0614 | L2: 0.0247
+[10-20 22:38] - Denoised images mean -0.016433903947472572, min -0.9214286804199219, max 1.5559968948364258
+[10-20 22:38] - Error mean 0.15618136525154114, min 0.0, max 1.3188199996948242
+[10-20 22:38] - Epoch  8: best loss improved from 0.0255 to 0.0247
+[10-20 22:38] - Epoch 9 | lr 3.28e-05
+[10-20 22:40] - Train loss: 0.0305 | huber: 0.0741 | L1: 0.0741 | L2: 0.0305
+[10-20 22:40] - Val   loss: 0.0249 | huber: 0.0623 | L1: 0.0623 | L2: 0.0249
+[10-20 22:40] - Denoised images mean -0.03282764181494713, min -0.9518041610717773, max 1.5954093933105469
+[10-20 22:40] - Error mean 0.1556227207183838, min 0.0, max 1.270888328552246
+[10-20 22:40] - Epoch 10 | lr 3.04e-05
+[10-20 22:41] - Train loss: 0.0302 | huber: 0.0735 | L1: 0.0735 | L2: 0.0302
+[10-20 22:41] - Val   loss: 0.0247 | huber: 0.0624 | L1: 0.0624 | L2: 0.0247
+[10-20 22:41] - Denoised images mean -0.05768340080976486, min -0.9582152366638184, max 1.580277442932129
+[10-20 22:41] - Error mean 0.14797265827655792, min 0.0, max 1.2728486061096191
+[10-20 22:41] - Epoch 10: best loss improved from 0.0247 to 0.0247
+[10-20 22:41] - Epoch 11 | lr 2.79e-05
+[10-20 22:42] - Train loss: 0.0299 | huber: 0.0732 | L1: 0.0732 | L2: 0.0299
+[10-20 22:42] - Val   loss: 0.0244 | huber: 0.0594 | L1: 0.0594 | L2: 0.0244
+[10-20 22:42] - Denoised images mean -0.017576733604073524, min -0.9478492736816406, max 1.5716357231140137
+[10-20 22:42] - Error mean 0.15672430396080017, min 0.0, max 1.3009347915649414
+[10-20 22:42] - Epoch 11: best loss improved from 0.0247 to 0.0244
+[10-20 22:42] - Epoch 12 | lr 2.55e-05
+[10-20 22:43] - Train loss: 0.0296 | huber: 0.0726 | L1: 0.0726 | L2: 0.0296
+[10-20 22:43] - Val   loss: 0.0244 | huber: 0.0614 | L1: 0.0614 | L2: 0.0244
+[10-20 22:43] - Denoised images mean -0.050093527883291245, min -0.9650866985321045, max 1.535630702972412
+[10-20 22:43] - Error mean 0.1537698656320572, min 4.76837158203125e-07, max 1.2705802917480469
+[10-20 22:43] - Epoch 12: best loss improved from 0.0244 to 0.0244
+[10-20 22:43] - Epoch 13 | lr 2.30e-05
+[10-20 22:44] - Train loss: 0.0295 | huber: 0.0723 | L1: 0.0723 | L2: 0.0295
+[10-20 22:44] - Val   loss: 0.0244 | huber: 0.0601 | L1: 0.0601 | L2: 0.0244
+[10-20 22:44] - Denoised images mean -0.030332321301102638, min -0.948737621307373, max 1.5560612678527832
+[10-20 22:44] - Error mean 0.15372872352600098, min 0.0, max 1.271066665649414
+[10-20 22:44] - Epoch 13: best loss improved from 0.0244 to 0.0244
+[10-20 22:44] - Epoch 14 | lr 2.06e-05
+[10-20 22:46] - Train loss: 0.0293 | huber: 0.0723 | L1: 0.0723 | L2: 0.0293
+[10-20 22:46] - Val   loss: 0.0251 | huber: 0.0610 | L1: 0.0610 | L2: 0.0251
+[10-20 22:46] - Denoised images mean -0.04212241247296333, min -0.9714679718017578, max 1.540914535522461
+[10-20 22:46] - Error mean 0.1519259363412857, min 4.76837158203125e-07, max 1.2709717750549316
+[10-20 22:46] - Epoch 15 | lr 1.82e-05
+[10-20 22:47] - Train loss: 0.0290 | huber: 0.0717 | L1: 0.0717 | L2: 0.0290
+[10-20 22:47] - Val   loss: 0.0240 | huber: 0.0589 | L1: 0.0589 | L2: 0.0240
+[10-20 22:47] - Denoised images mean -0.03610410541296005, min -0.9633831977844238, max 1.5652775764465332
+[10-20 22:47] - Error mean 0.14951756596565247, min 4.76837158203125e-07, max 1.285841941833496
+[10-20 22:47] - Epoch 15: best loss improved from 0.0244 to 0.0240
+[10-20 22:47] - Epoch 16 | lr 1.57e-05
+[10-20 22:48] - Train loss: 0.0288 | huber: 0.0713 | L1: 0.0713 | L2: 0.0288
+[10-20 22:48] - Val   loss: 0.0247 | huber: 0.0593 | L1: 0.0593 | L2: 0.0247
+[10-20 22:48] - Denoised images mean -0.023467494174838066, min -0.9715571403503418, max 1.5650458335876465
+[10-20 22:48] - Error mean 0.15261918306350708, min 9.5367431640625e-07, max 1.2852277755737305
+[10-20 22:48] - Epoch 17 | lr 1.32e-05
+[10-20 22:49] - Train loss: 0.0289 | huber: 0.0714 | L1: 0.0714 | L2: 0.0289
+[10-20 22:49] - Val   loss: 0.0237 | huber: 0.0593 | L1: 0.0593 | L2: 0.0237
+[10-20 22:49] - Denoised images mean -0.049362074583768845, min -0.9861404895782471, max 1.5704021453857422
+[10-20 22:49] - Error mean 0.14804881811141968, min 0.0, max 1.2774262428283691
+[10-20 22:49] - Epoch 17: best loss improved from 0.0240 to 0.0237
+[10-20 22:49] - Epoch 18 | lr 1.08e-05
+[10-20 22:50] - Train loss: 0.0286 | huber: 0.0711 | L1: 0.0711 | L2: 0.0286
+[10-20 22:50] - Val   loss: 0.0235 | huber: 0.0584 | L1: 0.0584 | L2: 0.0235
+[10-20 22:50] - Denoised images mean -0.04915589839220047, min -0.9849801063537598, max 1.5634803771972656
+[10-20 22:50] - Error mean 0.14525337517261505, min 0.0, max 1.2884788513183594
+[10-20 22:50] - Epoch 18: best loss improved from 0.0237 to 0.0235
+[10-20 22:50] - Epoch 19 | lr 8.35e-06
+[10-20 22:52] - Train loss: 0.0287 | huber: 0.0711 | L1: 0.0711 | L2: 0.0287
+[10-20 22:52] - Val   loss: 0.0235 | huber: 0.0586 | L1: 0.0586 | L2: 0.0235
+[10-20 22:52] - Denoised images mean -0.054084278643131256, min -0.9842214584350586, max 1.5618138313293457
+[10-20 22:52] - Error mean 0.14503203332424164, min 0.0, max 1.2821197509765625
+[10-20 22:52] - Epoch 19: best loss improved from 0.0235 to 0.0235
+[10-20 22:52] - Epoch 20 | lr 5.90e-06
+[10-20 22:53] - Train loss: 0.0285 | huber: 0.0709 | L1: 0.0709 | L2: 0.0285
+[10-20 22:53] - Val   loss: 0.0236 | huber: 0.0587 | L1: 0.0587 | L2: 0.0236
+[10-20 22:53] - Denoised images mean -0.05931893363595009, min -0.9885244369506836, max 1.5683765411376953
+[10-20 22:53] - Error mean 0.14344525337219238, min 0.0, max 1.2866764068603516
+[10-20 22:53] - Loading best model
+[10-20 22:53] - Val: Loss 0.02343, Acc@1 0.05862
+[10-20 22:53] - Finished Training. Took: 24.12m

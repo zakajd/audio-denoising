@@ -1,0 +1,42 @@
+general:
+  name: classification_hydra_debug
+  seed: 42
+  debug: false
+data:
+  root: data/raw
+  batch_size: 32
+  workers: 6
+  aug_type: light
+training:
+  resume: ''
+  optim: adam
+  optim_params:
+    weight_decay: 0.0
+    amsgrad: true
+  use_fp16: true
+  ema_decay: 0.0
+  model:
+    arch: resnet50
+    model_params:
+      pretrained: imagenet
+  task: classification
+  phases:
+  - ep:
+    - 0
+    - 3
+    lr:
+    - 0.0001
+    - 1.0e-06
+    mode: cos
+    mom: null
+  size: 512
+  metrics:
+  - acc
+  criterion: bce
+  criterion_params: {}
+  arch: resnet50
+  model_params:
+    pretrained: imagenet
+testing:
+  val_size: 512
+  tta: false

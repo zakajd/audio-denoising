@@ -16,6 +16,5 @@ __pycache__/
 data/*
 .vscode/
 
-logs/*
-# logs/*/*.chpn
+logs/*/*.chpn
 # logs/*/*.npy
